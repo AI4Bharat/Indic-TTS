@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "socket.io": "^4.5.2"
+  },
+    "scripts": {
+        "start": "http-server ."
+    }
+}

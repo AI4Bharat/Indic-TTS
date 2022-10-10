@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+    <!-- <link href="dist/output.css" rel="stylesheet"> -->
+    <script defer src="https://use.fontawesome.com/6da64fcf5b.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="app">
+
+        <nav class="navbar is-orange">
+        </nav>
+
+        <section class="section">
+            <div class="container">
+                <h1 class="title is-1">
+                    <span class="orange-color">AI4Bharat</span> Text to Speech <span
+                        class="tag is-warning">Beta</span>
+                </h1>
+                <p class="subtitle">
+                    <strong>TTS</strong> for Indian Languages!
+                </p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+
+                <div v-if="process">
+                    <progress class="progress is-small is-warning" max="100">15%</progress>
+                </div>
+
+                <br>
+
+                <h1 class="title is-4">Input</h1>
+
+                <div class="select is-link">
+                    <select>
+                        <option>Telugu</option>
+                    </select>
+                </div>
+
+                  <div class="select is-link">
+                    <select>
+                      <option>Male</option>
+                    </select>
+                  </div>
+
+                <br><br>
+
+                <textarea id="transcript" class="textarea is-link is-large" placeholder="">{{ transcription }}</textarea>
+			    
+                <br><br>
+
+                <div class="file is-centered is-medium has-name is-boxed" id="text_submit">
+                    <label class="file-label" style="align-items: center">
+                        <input class="file-input" type="submit" v-on:click="handleText">
+                        <span class="file-cta is-orange">
+                            <span class="file-label">
+                                Convert
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
+                <br><br>
+
+                <h1 class="title is-4">Output</h1>
+
+                <audio id="audio-output" controls style="display: none">
+                    <source src="" type="audio/wav">
+                  Your browser does not support the audio element.
+                </audio>
+
+            </div>
+        </section>
+
+       
+    </div>
+</body>
+
+
+<script src="node_modules/socket.io/client-dist/socket.io.js"></script>
+<script src="main.js"></script>
+<script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            file_message: 'No file uploaded',
+            picked: 'Testing',
+            transcription: '',
+            statusClass: 'is-primary',
+            recordStatusClass: 'is-link',
+            process: false,
+            record: 'Record',
+            isRecording: false,
+            rec: null,
+            imageSource: 'https://gist.githubusercontent.com/bietkul/20f702276adff150f3cc4502254665d2/raw/02a339636df69878b48608468f4f25333d3ef8c9/mic.gif',
+            reader: new FileReader(),
+            type: 'text',
+            number_mode: false
+        },
+        methods: {
+            // handleFileUpload: function () {
+            //     console.log(this.$refs.file.files)
+            //     this.file_message = this.$refs.file.files[0].name;
+            //     console.log(this.$refs.file.files[0])
+            //     this.message = 'Calling from same function!';
+            //     this.submitFile();
+            // },
+            handleText: function () {
+                this.statusClass = 'is-warning';
+                // console.log("testing")
+                this.transcription = 'Processing..';
+                this.process = true;
+                var transcript = document.getElementById("transcript");
+                // console.log(transcript.value)
+                this.request = {
+                    "language": "te",
+                    "text": transcript.value
+                };
+                /*
+                Make the request to the POST /single-file URL
+                */
+                // console.log(this.request)
+                socket_tts.emit('infer', this.request, (x) => {
+                    // console.log(x)
+                    if (x["status"] == 'SUCCESS') {
+                        // console.log(x)
+                        // transcript.value = "done"
+                        this.statusClass = 'is-success'
+                        this.statusText = 'Upload text'
+                        this.process = false
+                        let arrayBuffer = x['output']['audio']
+                        const blob = new Blob([arrayBuffer], { type: "audio/wav" });
+                        const url = window.URL.createObjectURL(blob);
+                        audioElement = document.getElementById("audio-output")
+                        audioElement.src = url;
+                        audioElement.style.display = 'block'
+                    }
+                    else {
+                        // console.log("error")
+                        transcript.value = 'Error'
+                        this.statusClass = 'is-danger'
+                        this.statusText = 'Upload text'
+                        this.transcription = 'Please check console.'
+                        this.process = false
+                    }
+                })
+            },
+
+        },
+        created: function () {
+            // console.log("Created function called.");
+            // this.initializeRecord();
+        }
+    })
+</script>
+<!-- <script>
+  var socket_speech= io('ws://127.0.0.1:5000/speech',transport=['websockets'],upgrade=false);
+  var socket_tts= io('ws://127.0.0.1:5000/text',transport=['websockets'],upgrade=false);
+  
+  socket_speech.once("connect", (x) => {
+  console.log(x)
+  console.log(socket_speech.id); // "G5p5..."
+  });
+ 
+  socket_tts.once("connect", (x) => {
+  console.log(x)
+  console.log(socket_tts.id); // "G5p5..."
+  });
+
+  
+
+</script> -->
+
+</html>
