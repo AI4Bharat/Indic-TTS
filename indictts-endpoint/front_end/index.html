@@ -44,14 +44,17 @@
                 <h1 class="title is-4">Input</h1>
 
                 <div class="select is-link">
-                    <select>
-                        <option>Telugu</option>
+                    <select id="option-language">
+                        <option value="hi">Hindi</option>
+                        <option value="mr">Marathi</option>
+                        <option value="te">Telugu</option>
                     </select>
                 </div>
 
                   <div class="select is-link">
-                    <select>
-                      <option>Male</option>
+                    <select id="option-speaker">
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
                     </select>
                   </div>
 
@@ -122,14 +125,18 @@
             // },
             handleText: function () {
                 this.statusClass = 'is-warning';
-                // console.log("testing")
                 this.transcription = 'Processing..';
                 this.process = true;
                 var transcript = document.getElementById("transcript");
-                // console.log(transcript.value)
+                var language = document.getElementById("option-language").value
+                var speaker = document.getElementById("option-speaker").value
+                if (language === "te") {
+                    speaker = ''
+                }
                 this.request = {
-                    "language": "te",
-                    "text": transcript.value
+                    "language": language,
+                    "text": transcript.value,
+                    "speaker": speaker
                 };
                 /*
                 Make the request to the POST /single-file URL
