@@ -2,4 +2,4 @@
 *.pth
 *.json
 *.DS_Store
-
+*.log
