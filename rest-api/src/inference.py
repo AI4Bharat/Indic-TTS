@@ -4,9 +4,10 @@ import base64
 from TTS.utils.synthesizer import Synthesizer
 from aksharamukha.transliterate import process as aksharamukha_xlit
 
-from src.models.common import Language
-from src.models.request import TTSRequest
-from src.models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
+from .models.common import Language
+from .models.request import TTSRequest
+from .models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
+from .utils.text import TextNormalizer
 
 class TextToSpeechEngine:
     def __init__(self, models: dict, allow_transliteration=True):
@@ -14,7 +15,7 @@ class TextToSpeechEngine:
         if allow_transliteration:
             from ai4bharat.transliteration import XlitEngine
             self.xlit_engine = XlitEngine(list(models), beam_width=6)
-        
+        self.text_normalizer = TextNormalizer()
 
     def infer_from_request(self, request: TTSRequest, transliterate_roman_to_indic: bool = True):
         config = request.config
@@ -24,7 +25,7 @@ class TextToSpeechEngine:
         if lang not in self.models:
             return TTSFailureResponse(status_text="Unsupported language!")
         
-        if lang == "mni" and gender == "male":
+        if lang == "brx" and gender == "male":
             return TTSFailureResponse(status_text="Sorry, `male` speaker not supported for this language!")
         
         model = self.models[lang]['synthesizer']
@@ -32,6 +33,8 @@ class TextToSpeechEngine:
 
         for sentence in request.input:
             input_text = sentence.source
+            input_text = self.text_normalizer.convert_numbers_to_words(input_text, lang)
+
             if transliterate_roman_to_indic:
                 input_text = self.transliterate_sentence(input_text, lang)
             

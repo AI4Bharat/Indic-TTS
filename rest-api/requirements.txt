@@ -9,3 +9,5 @@ TTS
 
 ai4bharat-transliteration
 aksharamukha
+translators
+num2words
