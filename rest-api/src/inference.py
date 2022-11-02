@@ -1,13 +1,18 @@
 import io
 import base64
 
+
 from TTS.utils.synthesizer import Synthesizer
 from aksharamukha.transliterate import process as aksharamukha_xlit
+from scipy.io.wavfile import write as scipy_wav_write
+
 
 from .models.common import Language
 from .models.request import TTSRequest
 from .models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
 from .utils.text import TextNormalizer
+
+from src.postprocessor import PostProcessor
 
 class TextToSpeechEngine:
     def __init__(self, models: dict, allow_transliteration=True):
@@ -15,7 +20,11 @@ class TextToSpeechEngine:
         if allow_transliteration:
             from ai4bharat.transliteration import XlitEngine
             self.xlit_engine = XlitEngine(list(models), beam_width=6)
+
         self.text_normalizer = TextNormalizer()
+        self.orig_sr = 22050
+        self.target_sr = 16000
+        self.post_processor = PostProcessor(self.orig_sr, self.target_sr)
 
     def infer_from_request(self, request: TTSRequest, transliterate_roman_to_indic: bool = True):
         config = request.config
@@ -43,8 +52,11 @@ class TextToSpeechEngine:
                 input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
             
             wav_obj = model.tts(input_text, speaker_name=gender, style_wav="")
+            wav = self.post_processor.process(wav_obj, lang, gender)
+
             byte_io = io.BytesIO()
-            model.save_wav(wav_obj, byte_io)
+            scipy_wav_write(byte_io, self.target_sr, wav)
+            # model.save_wav(wav, byte_io)
             encoded_bytes = base64.b64encode(byte_io.read())
             encoded_string = encoded_bytes.decode()
             speech_response = AudioFile(audioContent=encoded_string)
