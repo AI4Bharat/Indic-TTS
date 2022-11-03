@@ -23,8 +23,7 @@
         <section class="section">
             <div class="container">
                 <h1 class="title is-1">
-                    <span class="orange-color">AI4Bharat</span> Text to Speech <span
-                        class="tag is-warning">Beta</span>
+                    <span class="orange-color">AI4Bharat</span> Text to Speech <span class="tag is-warning">Beta</span>
                 </h1>
                 <p class="subtitle">
                     <strong>TTS</strong> for Indian Languages!
@@ -45,23 +44,34 @@
 
                 <div class="select is-link">
                     <select id="option-language">
-                        <option value="hi">Hindi</option>
-                        <option value="mr">Marathi</option>
-                        <option value="te">Telugu</option>
+                        <option value="as">Assamese - অসমীয়া</option>
+                        <option value="bn">Bangla - বাংলা</option>
+                        <option value="brx">Boro - बड़ो</option>
+                        <option value="gu">Gujarati - ગુજરાતી</option>
+                        <option value="hi">Hindi - हिंदी</option>
+                        <option value="kn">Kannada - ಕನ್ನಡ</option>
+                        <option value="ml">Malayalam - മലയാളം</option>
+                        <option value="mni">Manipuri - মিতৈলোন</option>
+                        <option value="mr">Marathi - मराठी</option>
+                        <option value="or">Oriya - ଓଡ଼ିଆ</option>
+                        <option value="raj">Rajasthani - राजस्थानी</option>
+                        <option value="ta">Tamil - தமிழ்</option>
+                        <option value="te">Telugu - తెలుగు</option>
                     </select>
                 </div>
 
-                  <div class="select is-link">
+                <div class="select is-link">
                     <select id="option-speaker">
                         <option value="female">Female</option>
                         <option value="male">Male</option>
                     </select>
-                  </div>
+                </div>
 
                 <br><br>
 
-                <textarea id="transcript" class="textarea is-link is-large" placeholder="">{{ transcription }}</textarea>
-			    
+                <textarea id="transcript" class="textarea is-link is-large"
+                    placeholder="">{{ transcription }}</textarea>
+
                 <br><br>
 
                 <div class="file is-centered is-medium has-name is-boxed" id="text_submit">
@@ -81,13 +91,13 @@
 
                 <audio id="audio-output" controls style="display: none">
                     <source src="" type="audio/wav">
-                  Your browser does not support the audio element.
+                    Your browser does not support the audio element.
                 </audio>
 
             </div>
         </section>
 
-       
+
     </div>
 </body>
 
@@ -130,31 +140,42 @@
                 var transcript = document.getElementById("transcript");
                 var language = document.getElementById("option-language").value
                 var speaker = document.getElementById("option-speaker").value
-                if (language === "te") {
-                    speaker = ''
-                }
+
+                // this.request = {
+                //     "language": language,
+                //     "text": transcript.value,
+                //     "speaker": speaker
+                // };
                 this.request = {
-                    "language": language,
-                    "text": transcript.value,
-                    "speaker": speaker
-                };
+                    "input": [
+                        {
+                            "source": transcript.value,
+                        }
+                    ],
+                    "config": {
+                        "gender": speaker,
+                        "language": {
+                            "sourceLanguage": language
+                        }
+                    }
+                }
                 /*
                 Make the request to the POST /single-file URL
                 */
                 // console.log(this.request)
-                socket_tts.emit('infer', this.request, (x) => {
-                    // console.log(x)
-                    if (x["status"] == 'SUCCESS') {
-                        // console.log(x)
-                        // transcript.value = "done"
+                socket_tts.emit('infer', this.request, (response) => {
+                    if (response["audio"]) {
                         this.statusClass = 'is-success'
                         this.statusText = 'Upload text'
                         this.process = false
-                        let arrayBuffer = x['output']['audio']
-                        const blob = new Blob([arrayBuffer], { type: "audio/wav" });
-                        const url = window.URL.createObjectURL(blob);
+                        let arrayString = 'data:audio/wav;base64,' + response["audio"][0]["audioContent"]
+                        console.log(arrayString)
+                        // let arrayBuffer = atob(arrayString)
+                        // console.log(arrayBuffer)
+                        // const blob = new Blob([arrayBuffer], { type: "audio/wav; codecs=MS_PCM" });
+                        // const url = window.URL.createObjectURL(blob);
                         audioElement = document.getElementById("audio-output")
-                        audioElement.src = url;
+                        audioElement.src = arrayString;
                         audioElement.style.display = 'block'
                     }
                     else {
@@ -168,29 +189,9 @@
                 })
             },
 
-        },
-        created: function () {
-            // console.log("Created function called.");
-            // this.initializeRecord();
         }
     })
 </script>
-<!-- <script>
-  var socket_speech= io('ws://127.0.0.1:5000/speech',transport=['websockets'],upgrade=false);
-  var socket_tts= io('ws://127.0.0.1:5000/text',transport=['websockets'],upgrade=false);
-  
-  socket_speech.once("connect", (x) => {
-  console.log(x)
-  console.log(socket_speech.id); // "G5p5..."
-  });
- 
-  socket_tts.once("connect", (x) => {
-  console.log(x)
-  console.log(socket_tts.id); // "G5p5..."
-  });
 
-  
-
-</script> -->
 
 </html>
