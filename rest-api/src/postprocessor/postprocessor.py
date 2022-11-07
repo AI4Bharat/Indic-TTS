@@ -28,7 +28,7 @@ class PostProcessor:
         audio_stream = ffmpeg.filter_(in_stream, 'atempo', atempo)
         audio_stream = audio_stream.output(outpath)
         ffmpeg.run(audio_stream, overwrite_output=True)
-        wav, _ = sf.read(outpath)
+        wav, _ = librosa.load(outpath, sr=self.target_sr)
         os.remove(inpath)
         os.remove(outpath)
         return wav
