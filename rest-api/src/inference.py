@@ -42,7 +42,7 @@ class TextToSpeechEngine:
 
         for sentence in request.input:
             input_text = sentence.source
-            input_text = self.text_normalizer.convert_numbers_to_words(input_text, lang)
+            input_text = self.text_normalizer.normalize_text(input_text, lang)
 
             if transliterate_roman_to_indic:
                 input_text = self.transliterate_sentence(input_text, lang)
