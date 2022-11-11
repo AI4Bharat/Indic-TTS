@@ -42,6 +42,9 @@ class TextNormalizer:
       text = text.replace(num_str, ' '+num_word+' ', 1)
     return text.replace("  ", ' ')
 
+  def expand_phones(self, item):
+    return ' '.join(list(item))
+  
   def convert_symbols_to_words(self, text, lang):
     symbols = self.symbols2lang2word.keys()
     emails = re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', text)
@@ -50,5 +53,12 @@ class TextNormalizer:
       item_norm = item
       for symbol in symbols:
         item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
+      text = text.replace(item, item_norm)
+    phones = re.findall(r'\+?\d[ \d-]{6,12}\d', text)
+    for item in phones:
+      item_norm = item.replace('-', ' ')
+      for symbol in symbols:
+        item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
+      item_norm = self.expand_phones(item_norm)
       text = text.replace(item, item_norm)
     return text
