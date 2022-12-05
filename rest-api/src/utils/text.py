@@ -54,6 +54,12 @@ class TextNormalizer:
       for symbol in symbols:
         item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
       text = text.replace(item, item_norm)
+    currencies = re.findall(r"\₹\ ?[+-]?[0-9]{1,3}(?:,?[0-9])*(?:\.[0-9]{1,2})?", text)
+    for item in currencies:
+      item_norm = item.replace('₹','') + '₹'  # Pronounce after numerals
+      for symbol in symbols:
+        item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
+      text = text.replace(item, item_norm)
     phones = re.findall(r'\+?\d[ \d-]{6,12}\d', text)
     for item in phones:
       item_norm = item.replace('-', ' ')
