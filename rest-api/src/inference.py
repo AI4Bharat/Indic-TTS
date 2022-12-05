@@ -11,6 +11,7 @@ from .models.common import Language
 from .models.request import TTSRequest
 from .models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
 from .utils.text import TextNormalizer
+from .utils.paragraph_handler import ParagraphHandler
 
 from src.postprocessor import PostProcessor
 
@@ -25,6 +26,7 @@ class TextToSpeechEngine:
         self.orig_sr = 22050
         self.target_sr = 16000
         self.post_processor = PostProcessor(self.orig_sr, self.target_sr)
+        self.paragraph_handler = ParagraphHandler()
 
     def infer_from_request(self, request: TTSRequest, transliterate_roman_to_indic: bool = True):
         config = request.config
@@ -51,8 +53,13 @@ class TextToSpeechEngine:
                 # TODO: Delete explicit-schwa
                 input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
             
-            wav_obj = model.tts(input_text, speaker_name=gender, style_wav="")
-            wav = self.post_processor.process(wav_obj, lang, gender)
+            wav = None
+            paragraphs = self.paragraph_handler.split_text(input_text)
+            for paragraph in paragraphs:
+                wav_obj = model.tts(paragraph, speaker_name=gender, style_wav="")
+                wav_chunk = self.post_processor.process(wav_obj, lang, gender)
+                wav = self.post_processor.concatenate_chunks(wav, wav_chunk)
+
 
             byte_io = io.BytesIO()
             scipy_wav_write(byte_io, self.target_sr, wav)

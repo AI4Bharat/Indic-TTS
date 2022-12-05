@@ -45,6 +45,11 @@ class PostProcessor:
         wav = torch.Tensor(wav.reshape(1, 1, wav.shape[0])).float().to(self.device)
         wav = self.denoiser.separate(wav)[0][0] #(batch, channels, time) -> (time)
         return wav.cpu().detach().numpy()
+    
+    def concatenate_chunks(self, wav:np.ndarray, wav_chunk:np.ndarray):
+        if wav is None:
+            return wav_chunk
+        return np.concatenate([wav, wav_chunk])
 
     def process(self, wav_obj:list, lang:str, gender:str):
         st = time.time()
