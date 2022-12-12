@@ -15,10 +15,20 @@ class TextNormalizer:
     self.symbols2lang2word = json.load(open('src/utils/symbols.json', 'r'))
   
   def normalize_text(self, text, lang):
+    text = self.replace_punctutations(text, lang)
     text = self.convert_symbols_to_words(text, lang)
     text = self.convert_numbers_to_words(text, lang)
     return text
 
+  def replace_punctutations(self, text, lang):
+    if lang not in ['brx', 'or']:
+      text = text.replace('।', '.')
+    else:
+      text = text.replace('.', '।')
+    text = text.replace('|', '.')
+    text = text.replace(':', ',').replace(';',',')
+    return text
+  
   def convert_numbers_to_words(self, text, lang):
     num_strs = get_all_numbers_from_string(text)
     if not num_strs:
