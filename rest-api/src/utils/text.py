@@ -5,7 +5,7 @@ num_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)?"
 def get_all_numbers_from_string(text):
   return num_str_regex.findall(text)
 
-from num2words import num2words
+from indic_numtowords import num2words, supported_langs
 import traceback
 from .translator import GoogleTranslator
 
@@ -35,18 +35,22 @@ class TextNormalizer:
       return text
     
     # TODO: If it is a large integer without commas (say >5 digits), spell it out numeral by numeral
-    numbers = [float(num_str.replace(',', '')) for num_str in num_strs]
-
-    # TODO: Use this library once stable: https://github.com/sutariyaraj/indic-num2words
-    # Currently, we are first converting to Indian-English, followed by NMT
-    num_words = [num2words(num, lang="en_IN") for num in numbers]
-    if lang != "en":
+    # NOTE: partially handled by phones
+    numbers = [int(num_str.replace(',', '')) for num_str in num_strs]
+    
+    if lang in supported_langs:
+      print(lang, numbers)
+      num_words = [num2words(num, lang=lang) for num in numbers]
+    else: # Fallback, converting to Indian-English, followed by NMT
       try:
+        num_words = [num2words(num, lang="en") for num in numbers]
         translated_num_words = [self.translator(text=num_word, from_lang="en", to_lang=lang) for num_word in num_words]
         # TODO: Cache the results?
         num_words = translated_num_words
       except:
         traceback.print_exc()
+  
+    print('TRANSLATED: ', num_words)
     
     for num_str, num_word in zip(num_strs, num_words):
       text = text.replace(num_str, ' '+num_word+' ', 1)
