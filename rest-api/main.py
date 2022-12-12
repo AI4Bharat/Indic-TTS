@@ -18,6 +18,7 @@ SUPPORTED_LANGUAGES = {
     'mni': "Manipuri - মিতৈলোন",
     'mr' : "Marathi - मराठी",
     'or' : "Oriya - ଓଡ଼ିଆ",
+    'pa' : "Punjabi - ਪੰਜਾਬੀ",
     'raj': "Rajasthani - राजस्थानी",
     'ta' : "Tamil - தமிழ்",
     'te' : "Telugu - తెలుగు",
