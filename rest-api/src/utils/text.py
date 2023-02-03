@@ -1,9 +1,20 @@
 import re
 import json
+from nemo_text_processing.text_normalization.normalize import Normalizer
+
 
 num_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)?")
 def get_all_numbers_from_string(text):
   return num_str_regex.findall(text)
+
+date_generic_match_regex = re.compile("(?:[^0-9]\d*[./-]\d*[./-]\d*)")
+date_str_regex = re.compile("(?:\d{1,2}[./-]\d{1,2}[./-]\d{2,4})|(?:\d{2,4}[./-]\d{1,2}[./-]\d{1,2})")  # match like dd/mm/yyyy or dd-mm-yy or yyyy.mm.dd or yy/mm/dd
+def get_all_dates_from_string(text):
+  candidates = date_generic_match_regex.findall(text)
+  candidates = [c.replace(' ', '') for c in candidates]
+  candidates = [c for c in candidates if len(c) <= 10]  # Prune invalid dates
+  candidates = ' '.join(candidates)
+  return date_str_regex.findall(candidates)
 
 from indic_numtowords import num2words, supported_langs
 import traceback
@@ -12,10 +23,12 @@ from .translator import GoogleTranslator
 class TextNormalizer:
   def __init__(self):
     self.translator = GoogleTranslator()
+    self.normalizer = Normalizer(input_case='cased', lang='en')
     self.symbols2lang2word = json.load(open('src/utils/symbols.json', 'r'))
   
   def normalize_text(self, text, lang):
     text = self.replace_punctutations(text, lang)
+    text = self.convert_dates_to_words(text, lang)
     text = self.convert_symbols_to_words(text, lang)
     text = self.convert_numbers_to_words(text, lang)
     return text
@@ -26,7 +39,10 @@ class TextNormalizer:
     else:
       text = text.replace('.', '।')
     text = text.replace('|', '.')
-    text = text.replace(':', ',').replace(';',',')
+    for bracket in ['(', ')', '{', '}', '[', ']']:
+      text = text.replace(bracket, ',')
+    # text = text.replace(':', ',').replace(';',',')
+    text = text.replace(';',',')
     return text
   
   def convert_numbers_to_words(self, text, lang):
@@ -56,13 +72,28 @@ class TextNormalizer:
       text = text.replace(num_str, ' '+num_word+' ', 1)
     return text.replace("  ", ' ')
 
+  def convert_dates_to_words(self, text, lang):
+    date_strs = get_all_dates_from_string(text)
+    print('DATES:', date_strs)
+    if not date_strs:
+      return text
+    for date_str in date_strs:
+      normalized_str = self.normalizer.normalize(date_str, verbose=False, punct_post_process=True)
+      if 'lang' == 'brx':  # no translate
+        translated_str = normalized_str
+      else:
+        translated_str = self.translator(text=normalized_str, from_lang="en", to_lang=lang)
+      print('translated date:', translated_str)
+      text = text.replace(date_str, translated_str)
+    return text
+
   def expand_phones(self, item):
     return ' '.join(list(item))
   
   def convert_symbols_to_words(self, text, lang):
     symbols = self.symbols2lang2word.keys()
     emails = re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', text)
-    urls = re.findall(r"\w+://\w+\.\w+\.\w+/?[\w\.\?=#]*", text)
+    urls = re.findall(r'(?:\w+://)?\w+\.\w+\.\w+/?[\w\.\?=#]*', text)
     for item in emails + urls:
       item_norm = item
       for symbol in symbols:
