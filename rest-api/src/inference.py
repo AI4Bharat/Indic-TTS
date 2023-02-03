@@ -44,23 +44,32 @@ class TextToSpeechEngine:
 
         for sentence in request.input:
             input_text = sentence.source
+            print('input:', input_text)
+            print("Normalizing")
             input_text = self.text_normalizer.normalize_text(input_text, lang)
-
-            if transliterate_roman_to_indic:
-                input_text = self.transliterate_sentence(input_text, lang)
-            
-            if lang == "mni":
+            # print("roman2indic")
+            # if transliterate_roman_to_indic and lang != 'en':
+                # input_text = self.transliterate_sentence(input_text, lang)
+            # if lang == "mni":
                 # TODO: Delete explicit-schwa
-                input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
-            
+                # input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
+            print("Split para")
             wav = None
             paragraphs = self.paragraph_handler.split_text(input_text)
             for paragraph in paragraphs:
+                print("para:", paragraph)
+                print("roman2indic")
+                if transliterate_roman_to_indic:
+                    paragraph = self.transliterate_sentence(paragraph, lang)
+                    print('translit text', paragraph) 
+                if lang == "mni":
+                    # TODO: Delete explicit-schwa
+                    paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
                 wav_obj = model.tts(paragraph, speaker_name=gender, style_wav="")
                 wav_chunk = self.post_processor.process(wav_obj, lang, gender)
                 wav = self.post_processor.concatenate_chunks(wav, wav_chunk)
 
-
+            print("Creating payload")
             byte_io = io.BytesIO()
             scipy_wav_write(byte_io, self.target_sr, wav)
             # model.save_wav(wav, byte_io)
