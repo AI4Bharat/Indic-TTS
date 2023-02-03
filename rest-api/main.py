@@ -11,6 +11,7 @@ SUPPORTED_LANGUAGES = {
     'as' : "Assamese - অসমীয়া",
     'bn' : "Bangla - বাংলা",
     'brx': "Boro - बड़ो",
+    'en' : "Indian English",
     'gu' : "Gujarati - ગુજરાતી",
     'hi' : "Hindi - हिंदी",
     'kn' : "Kannada - ಕನ್ನಡ",
