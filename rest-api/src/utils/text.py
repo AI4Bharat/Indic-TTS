@@ -2,6 +2,9 @@ import re
 import json
 from nemo_text_processing.text_normalization.normalize import Normalizer
 
+decimal_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)")
+def get_all_decimals_from_string(text):
+  return decimal_str_regex.findall(text)
 
 num_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)?")
 def get_all_numbers_from_string(text):
@@ -16,6 +19,17 @@ def get_all_dates_from_string(text):
   candidates = ' '.join(candidates)
   return date_str_regex.findall(candidates)
 
+def get_decimal_substitution(decimal):
+  decimal_parts = decimal.split('.')
+  l_part = decimal_parts[0]
+  r_part = ""
+  for part in decimal_parts[1:]:
+    r_part += ' '.join(list(part))  # space between every digit after decimal point
+  decimal_sub = l_part + " point " + r_part 
+  decimal_sub = decimal_sub.strip()
+  return decimal_sub
+
+
 from indic_numtowords import num2words, supported_langs
 import traceback
 from .translator import GoogleTranslator
@@ -27,11 +41,24 @@ class TextNormalizer:
     self.symbols2lang2word = json.load(open('src/utils/symbols.json', 'r'))
   
   def normalize_text(self, text, lang):
+    text = self.normalize_decimals(text, lang)
     text = self.replace_punctutations(text, lang)
     text = self.convert_dates_to_words(text, lang)
     text = self.convert_symbols_to_words(text, lang)
     text = self.convert_numbers_to_words(text, lang)
     return text
+  
+  def normalize_decimals(self, text, lang):
+    decimal_strs = get_all_decimals_from_string(text)
+    if not decimal_strs:
+      return text
+    decimals = [str(decimal_str.replace(',', '')) for decimal_str in decimal_strs]
+    decimal_substitutions = [get_decimal_substitution(decimal) for decimal in decimals]
+    for decimal_str, decimal_sub in zip(decimal_strs, decimal_substitutions):
+      text = text.replace(decimal_str, decimal_sub)
+    print("normalized_decimals", text)
+    return text   
+
 
   def replace_punctutations(self, text, lang):
     if lang not in ['brx', 'or']:
