@@ -59,7 +59,7 @@ class TextToSpeechEngine:
             for paragraph in paragraphs:
                 print("para:", paragraph)
                 print("roman2indic")
-                if transliterate_roman_to_indic:
+                if transliterate_roman_to_indic and lang != 'en':
                     paragraph = self.transliterate_sentence(paragraph, lang)
                     print('translit text', paragraph) 
                 if lang == "mni":
