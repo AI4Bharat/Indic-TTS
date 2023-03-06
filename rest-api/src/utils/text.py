@@ -1,3 +1,6 @@
+import os
+PWD = os.path.dirname(__file__)
+
 import re
 import json
 from nemo_text_processing.text_normalization.normalize import Normalizer
@@ -38,7 +41,7 @@ class TextNormalizer:
   def __init__(self):
     self.translator = GoogleTranslator()
     self.normalizer = Normalizer(input_case='cased', lang='en')
-    self.symbols2lang2word = json.load(open('src/utils/symbols.json', 'r'))
+    self.symbols2lang2word = json.load(open(os.path.join(PWD, "symbols.json"), encoding="utf-8"))
   
   def normalize_text(self, text, lang):
     text = self.normalize_decimals(text, lang)

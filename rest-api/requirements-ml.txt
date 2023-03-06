@@ -2,12 +2,7 @@
 numba==0.56.2
 numpy>=1.23.0
 
-fastapi
-gunicorn
-uvicorn
 TTS
 
 ai4bharat-transliteration
-aksharamukha
-translators
-num2words
+asteroid

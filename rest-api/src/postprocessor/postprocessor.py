@@ -5,9 +5,7 @@ import ffmpeg
 import librosa
 import numpy as np
 import soundfile as sf
-
 from uuid import uuid4
-from asteroid.models import BaseModel as AsteroidBaseModel
 
 from .vad import VoiceActivityDetection
 
@@ -18,6 +16,8 @@ class PostProcessor:
         self.orig_sr = orig_sr
         self.target_sr = target_sr
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        from asteroid.models import BaseModel as AsteroidBaseModel
         self.denoiser = AsteroidBaseModel.from_pretrained("JorisCos/DCCRNet_Libri1Mix_enhsingle_16k").to(self.device)
         self.vad = VoiceActivityDetection()
         os.makedirs('wavs', exist_ok=True)  # tmp directory for ffmpeg processing
@@ -45,14 +45,9 @@ class PostProcessor:
         wav = torch.Tensor(wav.reshape(1, 1, wav.shape[0])).float().to(self.device)
         wav = self.denoiser.separate(wav)[0][0] #(batch, channels, time) -> (time)
         return wav.cpu().detach().numpy()
-    
-    def concatenate_chunks(self, wav:np.ndarray, wav_chunk:np.ndarray):
-        if wav is None:
-            return wav_chunk
-        return np.concatenate([wav, wav_chunk])
 
     def process(self, wav_obj:list, lang:str, gender:str):
-        st = time.time()
+        # st = time.time()
         wav = np.array(wav_obj)
         
         # Denoiser
@@ -64,6 +59,6 @@ class PostProcessor:
         elif (lang == 'mr') and (gender=='female'):  # Marathi female speaker speed up
             wav = self.trim_silence(wav)
             wav = self.set_tempo(wav, '1.15')
-        et = time.time()
-        print('Elapsed: ', et - st, 's')
+        # et = time.time()
+        # print('Elapsed: ', et - st, 's')
         return wav

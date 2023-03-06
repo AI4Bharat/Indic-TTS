@@ -27,8 +27,7 @@ SUPPORTED_LANGUAGES = {
 
 models = {}
 for lang in SUPPORTED_LANGUAGES:
-    models[lang] = {}
-    models[lang]['synthesizer']  = Synthesizer(
+    models[lang]  = Synthesizer(
         tts_checkpoint=f'models/fastpitch/v1/{lang}/best_model.pth',
         tts_config_path=f'models/fastpitch/v1/{lang}/config.json',
         tts_speakers_file=f'models/fastpitch/v1/{lang}/speakers.pth',

@@ -1,6 +1,6 @@
 class GoogleTranslator:
   def __init__(self):
-    from translators import google, _google
+    from translators.server import google, _google
     self._translate = google
 
     google("Testing...")
