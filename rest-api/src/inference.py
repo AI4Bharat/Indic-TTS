@@ -65,10 +65,8 @@ class TextToSpeechEngine:
 
         for sentence in request.input:
             wav = self.infer_from_text(sentence.source, lang, gender, transliterate_roman_to_native=transliterate_roman_to_native)
-
             byte_io = io.BytesIO()
             scipy_wav_write(byte_io, self.target_sr, wav)
-            # model.save_wav(wav, byte_io)
             encoded_bytes = base64.b64encode(byte_io.read())
             encoded_string = encoded_bytes.decode()
             speech_response = AudioFile(audioContent=encoded_string)
@@ -97,7 +95,6 @@ class TextToSpeechEngine:
                 # TODO: Delete explicit-schwa
                 paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
             wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
-            print("wav_chunk", type(wav_chunk))
             if self.enable_denoiser:
                 wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
             wav = self.concatenate_chunks(wav, wav_chunk)
