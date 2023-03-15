@@ -1,6 +1,7 @@
 import io
 import base64
 import numpy as np
+import traceback
 
 from TTS.utils.synthesizer import Synthesizer
 from aksharamukha.transliterate import process as aksharamukha_xlit
@@ -83,22 +84,24 @@ class TextToSpeechEngine:
         speaker_name: str,
         transliterate_roman_to_native: bool = True
     ):
-        
-        input_text = self.text_normalizer.normalize_text(input_text, lang)
-
-        wav = None
-        paragraphs = self.paragraph_handler.split_text(input_text)
-        for paragraph in paragraphs:
-            if transliterate_roman_to_native and lang != 'en':
-                paragraph = self.transliterate_sentence(paragraph, lang)
-            if lang == "mni":
-                # TODO: Delete explicit-schwa
-                paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
-            wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
-            if self.enable_denoiser:
-                wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
-            wav = self.concatenate_chunks(wav, wav_chunk)
-        return wav
+        try:        
+            input_text = self.text_normalizer.normalize_text(input_text, lang)
+            wav = None
+            paragraphs = self.paragraph_handler.split_text(input_text)
+            for paragraph in paragraphs:
+                if transliterate_roman_to_native and lang != 'en':
+                    paragraph = self.transliterate_sentence(paragraph, lang)
+                if lang == "mni":
+                    # TODO: Delete explicit-schwa
+                    paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
+                wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
+                if self.enable_denoiser:
+                    wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
+                wav = self.concatenate_chunks(wav, wav_chunk)
+            return wav
+        except:
+            traceback.print_exc()
+            return np.zeros(1)
 
     def transliterate_sentence(self, input_text, lang):
         if lang == "raj":
