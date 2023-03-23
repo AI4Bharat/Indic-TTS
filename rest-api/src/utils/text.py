@@ -8,9 +8,13 @@ from nemo_text_processing.text_normalization.normalize import Normalizer
 from indic_numtowords import num2words, supported_langs
 from .translator import GoogleTranslator
 
-short_form_regex = re.compile(r'\b[A-Z\.]{2,}s?\b')
+# short_form_regex = re.compile(r'\b[A-Z\.]{2,}s?\b')
+# def get_shortforms_from_string(text):
+#     return short_form_regex.findall(text)
+
+short_form_regex = re.compile(r"\b([A-Z][\.\s]*)+([A-Z])?\b")
 def get_shortforms_from_string(text):
-    return short_form_regex.findall(text)
+  return [m.group() for m in re.finditer(short_form_regex, text)]
 
 decimal_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)")
 def get_all_decimals_from_string(text):
@@ -59,12 +63,12 @@ class TextNormalizer:
   
   def normalize_text(self, text, lang):
     text = text.strip()
+    text = self.expand_shortforms(text, lang)
     text = self.normalize_decimals(text, lang)
     text = self.replace_punctutations(text, lang)
     text = self.convert_dates_to_words(text, lang)
     text = self.convert_symbols_to_words(text, lang)
     text = self.convert_numbers_to_words(text, lang)
-    text = self.expand_shortforms(text, lang)
     return text
   
   def normalize_decimals(self, text, lang):
@@ -151,18 +155,20 @@ class TextNormalizer:
     emails = self.find_valid(email_regex, text)
     # urls = re.findall(r'(?:\w+://)?\w+\.\w+\.\w+/?[\w\.\?=#]*', text)
     urls = self.find_valid(url_regex, text)
-    print('URLS', urls)
+    # print('URLS', urls)
     for item in emails + urls:
       item_norm = item
       for symbol in symbols:
         item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
       text = text.replace(item, item_norm)
+    
     currencies = self.find_valid(currency_regex, text)
     for item in currencies:
       item_norm = item.replace('₹','') + '₹'  # Pronounce after numerals
       for symbol in symbols:
         item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
       text = text.replace(item, item_norm)
+    
     phones = self.find_valid(phone_regex, text)
     for item in phones:
       item_norm = item.replace('-', ' ')
@@ -170,8 +176,10 @@ class TextNormalizer:
         item_norm = item_norm.replace(symbol, f' {self.symbols2lang2word[symbol][lang]} ')
       item_norm = self.expand_phones(item_norm)
       text = text.replace(item, item_norm)
+    
     # percentage
     text = text.replace('%', self.symbols2lang2word['%'][lang])
+    
     return text
 
   def convert_char2phone(self, char):

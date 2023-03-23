@@ -32,11 +32,13 @@ class TextToSpeechEngine:
         self.orig_sr = 22050 # model.output_sample_rate
         self.enable_denoiser = enable_denoiser
         if enable_denoiser:
+            from src.postprocessor import Denoiser
+            self.denoiser = Denoiser(self.orig_sr, self.target_sr)
             self.target_sr = 16000
-            self.post_processor = PostProcessor(self.orig_sr, self.target_sr)
         else:
             self.target_sr = self.orig_sr
         
+        self.post_processor = PostProcessor(self.target_sr)
         self.paragraph_handler = ParagraphHandler()
 
     def concatenate_chunks(self, wav: np.ndarray, wav_chunk: np.ndarray):
@@ -83,7 +85,7 @@ class TextToSpeechEngine:
         lang: str,
         speaker_name: str,
         transliterate_roman_to_native: bool = True
-    ):
+    ) -> np.ndarray:
         try:        
             input_text = self.text_normalizer.normalize_text(input_text, lang)
             wav = None
@@ -96,7 +98,8 @@ class TextToSpeechEngine:
                     paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
                 wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
                 if self.enable_denoiser:
-                    wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
+                    wav_chunk = self.denoiser.denoise(wav_chunk)
+                wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
                 wav = self.concatenate_chunks(wav, wav_chunk)
             return wav
         except:
