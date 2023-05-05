@@ -50,8 +50,8 @@ class TextToSpeechEngine:
         self.enable_denoiser = enable_denoiser
         if enable_denoiser:
             from src.postprocessor import Denoiser
-            self.denoiser = Denoiser(self.orig_sr, self.target_sr)
             self.target_sr = 16000
+            self.denoiser = Denoiser(self.orig_sr, self.target_sr)
         else:
             self.target_sr = self.orig_sr
         
