@@ -6,6 +6,8 @@ import traceback
 from TTS.utils.synthesizer import Synthesizer
 from aksharamukha.transliterate import process as aksharamukha_xlit
 from scipy.io.wavfile import write as scipy_wav_write
+
+import nltk
 import enchant
 from enchant.tokenize import get_tokenizer
 
@@ -125,9 +127,17 @@ class TextToSpeechEngine:
                 # Hinglish (English+Hindi code-mixed)
                 primary_lang, secondary_lang = lang.split('+')
                 
+                tokens = [result[0] for result in self.enchant_tokenizer(input_text)]
+                pos_tags = [result[1] for result in nltk.tag.pos_tag(tokens)]
+
                 # Transliterate non-English Roman words to Hindi
-                for word, index in self.enchant_tokenizer(input_text):
-                    if self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
+                for word, pos_tag in zip(tokens, pos_tags):
+                    if pos_tag == "NNP" or pos_tag == "NNPS":
+                        # Enchant has many proper-nouns as well in its dictionary, don't know why.
+                        # So if it's a proper-noun, always nativize
+                        # FIXME: But NLTK's `averaged_perceptron_tagger` does not seem to be accurate, it has false positives 🤦‍♂️ 
+                        pass
+                    elif self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
                         # TODO: Merge British and American dicts into 1 somehow
                         continue
                     
@@ -136,6 +146,7 @@ class TextToSpeechEngine:
 
                     transliterated_word = self.transliterate_sentence(word, lang=secondary_lang)
                     input_text = input_text.replace(word, transliterated_word, 1)
+            
             else:
                 primary_lang = lang
             

@@ -4,6 +4,7 @@ num2words
 indic-numtowords
 nemo-text-processing
 pyenchant
+nltk
 
 ffmpeg-python
 librosa
