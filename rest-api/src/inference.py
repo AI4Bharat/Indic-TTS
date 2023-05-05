@@ -6,14 +6,14 @@ import traceback
 from TTS.utils.synthesizer import Synthesizer
 from aksharamukha.transliterate import process as aksharamukha_xlit
 from scipy.io.wavfile import write as scipy_wav_write
-
+import enchant
+from enchant.tokenize import get_tokenizer
 
 from .models.common import Language
 from .models.request import TTSRequest
 from .models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
 from .utils.text import TextNormalizer
 from .utils.paragraph_handler import ParagraphHandler
-
 from src.postprocessor import PostProcessor
 
 class TextToSpeechEngine:
@@ -24,11 +24,28 @@ class TextToSpeechEngine:
         enable_denoiser: bool = True,
     ):
         self.models = models
+        
         if allow_transliteration:
+            # Initialize Indic-Xlit models for the languages corresponding to TTS models
             from ai4bharat.transliteration import XlitEngine
-            self.xlit_engine = XlitEngine(list(models), beam_width=6)
+            xlit_langs = set()
+            
+            for lang in list(models):
+                if lang == 'en':
+                    continue # No need of any Indic-transliteration for English
+                
+                if '+' in lang:
+                    # If it's a code-mixed model like Hinglish, we need Hindi Xlit for non-English words
+                    lang = lang.split('+')[1]
+                xlit_langs.add(lang)
+            
+            self.xlit_engine = XlitEngine(xlit_langs, beam_width=6)
+        else:
+            self.xlit_engine = None
 
         self.text_normalizer = TextNormalizer()
+        self.paragraph_handler = ParagraphHandler()
+
         self.orig_sr = 22050 # model.output_sample_rate
         self.enable_denoiser = enable_denoiser
         if enable_denoiser:
@@ -39,7 +56,13 @@ class TextToSpeechEngine:
             self.target_sr = self.orig_sr
         
         self.post_processor = PostProcessor(self.target_sr)
-        self.paragraph_handler = ParagraphHandler()
+
+        # Dictionary of English words
+        self.enchant_dicts = {
+            "en_US": enchant.Dict("en_US"),
+            "en_GB": enchant.Dict("en_GB"),
+        }
+        self.enchant_tokenizer = get_tokenizer("en")
 
     def concatenate_chunks(self, wav: np.ndarray, wav_chunk: np.ndarray):
         if type(wav_chunk) != np.ndarray:
@@ -58,6 +81,10 @@ class TextToSpeechEngine:
         lang = config.language.sourceLanguage
         gender = config.gender
 
+        # If there's no separate English model, use the Hinglish one
+        if lang == "en" and lang not in self.models and "en+hi" in self.models:
+            lang = "en+hi"
+
         if lang not in self.models:
             return TTSFailureResponse(status_text="Unsupported language!")
         
@@ -67,9 +94,11 @@ class TextToSpeechEngine:
         output_list = []
 
         for sentence in request.input:
-            wav = self.infer_from_text(sentence.source, lang, gender, transliterate_roman_to_native=transliterate_roman_to_native)
+            raw_audio = self.infer_from_text(sentence.source, lang, gender, transliterate_roman_to_native=transliterate_roman_to_native)
+            # Convert PCM to WAV
             byte_io = io.BytesIO()
-            scipy_wav_write(byte_io, self.target_sr, wav)
+            scipy_wav_write(byte_io, self.target_sr, raw_audio)
+            # Encode WAV fileobject as base64 for transmission via JSON
             encoded_bytes = base64.b64encode(byte_io.read())
             encoded_string = encoded_bytes.decode()
             speech_response = AudioFile(audioContent=encoded_string)
@@ -86,27 +115,64 @@ class TextToSpeechEngine:
         speaker_name: str,
         transliterate_roman_to_native: bool = True
     ) -> np.ndarray:
-        try:        
-            input_text = self.text_normalizer.normalize_text(input_text, lang)
+        try:
+            
+            # If there's no separate English model, use the Hinglish one if present
+            if lang == "en" and lang not in self.models and "en+hi" in self.models:
+                lang = "en+hi"
+
+            if lang == "en+hi":
+                # Hinglish (English+Hindi code-mixed)
+                primary_lang, secondary_lang = lang.split('+')
+                
+                # Transliterate non-English Roman words to Hindi
+                for word, index in self.enchant_tokenizer(input_text):
+                    if self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
+                        # TODO: Merge British and American dicts into 1 somehow
+                        continue
+                    
+                    # Convert "Ram's" -> "Ram". TODO: Think what are the failure cases
+                    word = word.split("'")[0]
+
+                    transliterated_word = self.transliterate_sentence(word, lang=secondary_lang)
+                    input_text = input_text.replace(word, transliterated_word, 1)
+            else:
+                primary_lang = lang
+            
+            input_text = self.text_normalizer.normalize_text(input_text, primary_lang)
             wav = None
             paragraphs = self.paragraph_handler.split_text(input_text)
+
             for paragraph in paragraphs:
-                if transliterate_roman_to_native and lang != 'en':
-                    paragraph = self.transliterate_sentence(paragraph, lang)
-                if lang == "mni":
+                # Transliterate roman words to native script for Indic langs
+                if transliterate_roman_to_native and primary_lang != 'en':
+                    paragraph = self.transliterate_sentence(paragraph, primary_lang)
+                
+                # Manipuri was trained using the Central-govt's Bangla script
+                # So convert the words in native state-govt script to Eastern-Nagari
+                if primary_lang == "mni":
                     # TODO: Delete explicit-schwa
-                    paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)               
+                    paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)
+                
+                # Run Inference
                 wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
+
                 if self.enable_denoiser:
                     wav_chunk = self.denoiser.denoise(wav_chunk)
-                wav_chunk = self.post_processor.process(wav_chunk, lang, speaker_name)
+                wav_chunk = self.post_processor.process(wav_chunk, primary_lang, speaker_name)
+
+                # Concatenate current chunk with previous audio outputs
                 wav = self.concatenate_chunks(wav, wav_chunk)
+            
             return wav
         except:
             traceback.print_exc()
             return np.zeros(1)
 
     def transliterate_sentence(self, input_text, lang):
+        if not self.xlit_engine:
+            return input_text
+
         if lang == "raj":
             lang = "hi" # Approximate
         

@@ -1,6 +1,7 @@
 # constraints for fairseq, works with TTS as well
 numba==0.56.2
 numpy>=1.23.0
+protobuf==3.20
 
 TTS
 

@@ -12,6 +12,7 @@ SUPPORTED_LANGUAGES = {
     'bn' : "Bangla - বাংলা",
     'brx': "Boro - बड़ो",
     'en' : "Indian English",
+    'en+hi': "Hinglish",
     'gu' : "Gujarati - ગુજરાતી",
     'hi' : "Hindi - हिंदी",
     'kn' : "Kannada - ಕನ್ನಡ",

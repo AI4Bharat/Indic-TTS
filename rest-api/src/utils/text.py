@@ -106,7 +106,7 @@ class TextNormalizer:
     numbers = [int(num_str.replace(',', '')) for num_str in num_strs]
     
     if lang in supported_langs:
-      print(lang, numbers)
+      # print(lang, numbers)
       num_words = [num2words(num, lang=lang) for num in numbers]
     else: # Fallback, converting to Indian-English, followed by NMT
       try:

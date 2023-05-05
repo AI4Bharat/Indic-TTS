@@ -3,6 +3,7 @@ translators
 num2words
 indic-numtowords
 nemo-text-processing
+pyenchant
 
 ffmpeg-python
 librosa
