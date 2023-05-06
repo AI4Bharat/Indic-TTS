@@ -26,6 +26,7 @@ class TextToSpeechEngine:
         enable_denoiser: bool = True,
     ):
         self.models = models
+        # TODO: Ability to instantiate models by accepting standard paths or auto-downloading
         
         if allow_transliteration:
             # Initialize Indic-Xlit models for the languages corresponding to TTS models
@@ -67,6 +68,7 @@ class TextToSpeechEngine:
         self.enchant_tokenizer = get_tokenizer("en")
 
     def concatenate_chunks(self, wav: np.ndarray, wav_chunk: np.ndarray):
+        # TODO: Move to utils
         if type(wav_chunk) != np.ndarray:
             wav_chunk = np.array(wav_chunk)
         if wav is None:
@@ -123,30 +125,10 @@ class TextToSpeechEngine:
             if lang == "en" and lang not in self.models and "en+hi" in self.models:
                 lang = "en+hi"
 
-            if lang == "en+hi":
-                # Hinglish (English+Hindi code-mixed)
+            if lang == "en+hi": # Hinglish (English+Hindi code-mixed)
                 primary_lang, secondary_lang = lang.split('+')
-                
-                tokens = [result[0] for result in self.enchant_tokenizer(input_text)]
-                pos_tags = [result[1] for result in nltk.tag.pos_tag(tokens)]
-
-                # Transliterate non-English Roman words to Hindi
-                for word, pos_tag in zip(tokens, pos_tags):
-                    if pos_tag == "NNP" or pos_tag == "NNPS":
-                        # Enchant has many proper-nouns as well in its dictionary, don't know why.
-                        # So if it's a proper-noun, always nativize
-                        # FIXME: But NLTK's `averaged_perceptron_tagger` does not seem to be accurate, it has false positives 🤦‍♂️ 
-                        pass
-                    elif self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
-                        # TODO: Merge British and American dicts into 1 somehow
-                        continue
-                    
-                    # Convert "Ram's" -> "Ram". TODO: Think what are the failure cases
-                    word = word.split("'")[0]
-
-                    transliterated_word = self.transliterate_sentence(word, lang=secondary_lang)
-                    input_text = input_text.replace(word, transliterated_word, 1)
-            
+                input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
+                # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
             else:
                 primary_lang = lang
             
@@ -165,7 +147,7 @@ class TextToSpeechEngine:
                     # TODO: Delete explicit-schwa
                     paragraph = aksharamukha_xlit("MeeteiMayek", "Bengali", paragraph)
                 
-                # Run Inference
+                # Run Inference. TODO: Support for batch inference
                 wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
 
                 if self.enable_denoiser:
@@ -179,6 +161,28 @@ class TextToSpeechEngine:
         except:
             traceback.print_exc()
             return np.zeros(1)
+
+    def transliterate_native_words_using_spell_checker(self, input_text, lang):
+        tokens = [result[0] for result in self.enchant_tokenizer(input_text)]
+        pos_tags = [result[1] for result in nltk.tag.pos_tag(tokens)]
+
+        # Transliterate non-English Roman words to Indic
+        for word, pos_tag in zip(tokens, pos_tags):
+            if pos_tag == "NNP" or pos_tag == "NNPS":
+                # Enchant has many proper-nouns as well in its dictionary, don't know why.
+                # So if it's a proper-noun, always nativize
+                # FIXME: But NLTK's `averaged_perceptron_tagger` does not seem to be 100% accurate, it has false positives 🤦‍♂️ 
+                pass
+            elif self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
+                # TODO: Merge British and American dicts into 1 somehow
+                continue
+            
+            # Convert "Ram's" -> "Ram". TODO: Think what are the failure cases
+            word = word.split("'")[0]
+
+            transliterated_word = self.transliterate_sentence(word, lang)
+            input_text = input_text.replace(word, transliterated_word, 1)
+        return input_text
 
     def transliterate_sentence(self, input_text, lang):
         if not self.xlit_engine:
