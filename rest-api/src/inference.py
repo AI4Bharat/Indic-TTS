@@ -127,12 +127,15 @@ class TextToSpeechEngine:
 
             if lang == "en+hi": # Hinglish (English+Hindi code-mixed)
                 primary_lang, secondary_lang = lang.split('+')
-                input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
                 # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
             else:
                 primary_lang = lang
+                secondary_lang = None
             
             input_text = self.text_normalizer.normalize_text(input_text, primary_lang)
+            if secondary_lang:
+                input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
+            
             wav = None
             paragraphs = self.paragraph_handler.split_text(input_text)
 
