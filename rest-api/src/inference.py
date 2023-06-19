@@ -164,6 +164,48 @@ class TextToSpeechEngine:
         except:
             traceback.print_exc()
             return np.zeros(1)
+        
+    def preprocess_text(self,
+        input_text: str,
+        lang: str,
+        # speaker_name: str,
+        transliterate_roman_to_native: bool = True
+    ) -> np.ndarray:
+        try:
+            
+            # If there's no separate English model, use the Hinglish one if present
+            if lang == "en" and lang not in self.models and "en+hi" in self.models:
+                lang = "en+hi"
+
+            if lang == "en+hi": # Hinglish (English+Hindi code-mixed)
+                primary_lang, secondary_lang = lang.split('+')
+                # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
+            else:
+                primary_lang = lang
+                secondary_lang = None
+
+            input_text = self.text_normalizer.normalize_text(input_text, primary_lang)
+            if secondary_lang:
+                input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
+
+            if transliterate_roman_to_native and primary_lang != 'en':
+                input_text = self.transliterate_sentence(input_text, primary_lang)
+
+                # Manipuri was trained using the Central-govt's Bangla script
+                # So convert the words in native state-govt script to Eastern-Nagari
+                if primary_lang == "mni":
+                    # TODO: Delete explicit-schwa
+                    input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
+            return input_text
+        except Exception:
+            traceback.print_exc()
+            return ""
+
+    def postprocess_audio(self, wav_chunk, primary_lang, speaker_name):
+        if self.enable_denoiser:
+            wav_chunk = self.denoiser.denoise(wav_chunk)
+        wav_chunk = self.post_processor.process(wav_chunk, primary_lang, speaker_name)
+        return wav_chunk
 
     def transliterate_native_words_using_spell_checker(self, input_text, lang):
         tokens = [result[0] for result in self.enchant_tokenizer(input_text)]
