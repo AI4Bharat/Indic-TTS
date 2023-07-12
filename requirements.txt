@@ -1,0 +1,11 @@
+jupyter
+librosa
+pandas
+pytorch_lightning
+scikit-learn
+seaborn
+soundfile
+tqdm
+TTS
+tensorboard
+wandb
