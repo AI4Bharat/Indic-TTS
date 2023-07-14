@@ -7,7 +7,8 @@ from flask_socketio import SocketIO,emit
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*", path='tts_socket.io', async_handlers=True, pingTimeout=60000)
-api_url = "https://tts-api.ai4bharat.org/"
+api_url = "http://localhost:5050"
+# api_url = "https://tts-api.ai4bharat.org/"
 
 @socketio.on('connect',namespace='/tts')
 def connection(x):
