@@ -3,8 +3,9 @@ numba==0.56.2
 numpy>=1.23.0
 protobuf==3.20
 
-# TTS
-TTS @ git+https://github.com/ashwin-014/TTS@deployment
+TTS
+# onnxruntime
+# TTS @ git+https://github.com/ashwin-014/TTS@deployment
 
 ai4bharat-transliteration
 asteroid

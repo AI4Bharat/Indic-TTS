@@ -9,8 +9,6 @@ from aksharamukha.transliterate import process as aksharamukha_xlit
 from scipy.io.wavfile import write as scipy_wav_write
 
 import nltk
-import enchant
-from enchant.tokenize import get_tokenizer
 
 from .models.common import Language
 from .models.request import TTSRequest
@@ -29,6 +27,7 @@ class TextToSpeechEngine:
         self.models = models
         # TODO: Ability to instantiate models by accepting standard paths or auto-downloading
         
+        code_mixed_found = False
         if allow_transliteration:
             # Initialize Indic-Xlit models for the languages corresponding to TTS models
             from ai4bharat.transliteration import XlitEngine
@@ -40,7 +39,9 @@ class TextToSpeechEngine:
                 
                 if '+' in lang:
                     # If it's a code-mixed model like Hinglish, we need Hindi Xlit for non-English words
+                    # TODO: Make it mandatory irrespective of `allow_transliteration` boolean
                     lang = lang.split('+')[1]
+                    code_mixed_found = True
                 xlit_langs.add(lang)
             
             self.xlit_engine = XlitEngine(xlit_langs, beam_width=6)
@@ -61,12 +62,16 @@ class TextToSpeechEngine:
         
         self.post_processor = PostProcessor(self.target_sr)
 
-        # Dictionary of English words
-        self.enchant_dicts = {
-            "en_US": enchant.Dict("en_US"),
-            "en_GB": enchant.Dict("en_GB"),
-        }
-        self.enchant_tokenizer = get_tokenizer("en")
+        if code_mixed_found:
+            # Dictionary of English words
+            import enchant
+            from enchant.tokenize import get_tokenizer
+
+            self.enchant_dicts = {
+                "en_US": enchant.Dict("en_US"),
+                "en_GB": enchant.Dict("en_GB"),
+            }
+            self.enchant_tokenizer = get_tokenizer("en")
 
     def concatenate_chunks(self, wav: np.ndarray, wav_chunk: np.ndarray):
         # TODO: Move to utils
@@ -126,7 +131,7 @@ class TextToSpeechEngine:
         paragraphs = self.paragraph_handler.split_text(input_text)
 
         for paragraph in paragraphs:
-            input_text = self.handle_transliteration(input_text, primary_lang, transliterate_roman_to_native)
+            paragraph = self.handle_transliteration(paragraph, primary_lang, transliterate_roman_to_native)
             
             # Run Inference. TODO: Support for batch inference
             wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
@@ -143,13 +148,13 @@ class TextToSpeechEngine:
 
         if lang == "en+hi": # Hinglish (English+Hindi code-mixed)
             primary_lang, secondary_lang = lang.split('+')
-            # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
         else:
             primary_lang = lang
             secondary_lang = None
 
-        input_text = self.text_normalizer.normalize_text(input_text.replace("।", "."), primary_lang)
+        input_text = self.text_normalizer.normalize_text(input_text, primary_lang)
         if secondary_lang:
+            # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
             input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
 
         return input_text, primary_lang, secondary_lang

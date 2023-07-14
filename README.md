@@ -36,7 +36,7 @@ Deep learning based text-to-speech (TTS) systems have been evolving rapidly with
 ### Environment Setup:
 ```
 # 1. Create environment
-sudo apt-get install libsndfile1-dev libsndfile1-dev ffmpeg enchant
+sudo apt-get install libsndfile1-dev ffmpeg enchant
 conda create -n tts-env
 conda activate tts-env
 

@@ -5,6 +5,7 @@ indic-numtowords
 nemo-text-processing
 pyenchant
 nltk
+regex
 
 ffmpeg-python
 librosa

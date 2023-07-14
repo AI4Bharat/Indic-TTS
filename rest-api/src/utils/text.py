@@ -1,12 +1,15 @@
 import os
 PWD = os.path.dirname(__file__)
 import re
+import regex
 import json
 import traceback
 
 from nemo_text_processing.text_normalization.normalize import Normalizer
 from indic_numtowords import num2words, supported_langs
 from .translator import GoogleTranslator
+
+indic_acronym_matcher = regex.compile(r"([\p{L}\p{M}]+\.\s*){2,}")
 
 # short_form_regex = re.compile(r'\b[A-Z\.]{2,}s?\b')
 # def get_shortforms_from_string(text):
@@ -62,7 +65,7 @@ class TextNormalizer:
     self.alphabet2phone = json.load(open(os.path.join(PWD, "alphabet2phone.json"), encoding="utf-8"))
   
   def normalize_text(self, text, lang):
-    text = text.strip()
+    text = text.replace("।", ".").replace("|", ".").replace("꯫", ".").strip()
     text = self.expand_shortforms(text, lang)
     text = self.normalize_decimals(text, lang)
     text = self.replace_punctutations(text, lang)
@@ -187,7 +190,13 @@ class TextNormalizer:
   
   def expand_shortforms(self, text, lang):
     if lang!='en':
+      # Remove dots, as it speaks out like each letter is separate sentence
+      for match in regex.finditer(indic_acronym_matcher, text):
+        match = match.group()
+        match_without_dot = match.replace('.', ' ')
+        text = text.replace(match, match_without_dot)
       return text
+    
     shortforms = get_shortforms_from_string(text)
     for shortform in shortforms:
         expanded = ' '.join([self.convert_char2phone(char) for char in shortform])
