@@ -20,7 +20,7 @@ SUPPORTED_LANGUAGES = {
     'mni': "Manipuri - মিতৈলোন",
     'mr' : "Marathi - मराठी",
     'or' : "Oriya - ଓଡ଼ିଆ",
-    'pa' : "Punjabi - ਪੰਜਾਬੀ",
+    'pa' : "Panjabi - ਪੰਜਾਬੀ",
     'raj': "Rajasthani - राजस्थानी",
     'ta' : "Tamil - தமிழ்",
     'te' : "Telugu - తెలుగు",
@@ -29,13 +29,13 @@ SUPPORTED_LANGUAGES = {
 models = {}
 for lang in SUPPORTED_LANGUAGES:
     models[lang]  = Synthesizer(
-        tts_checkpoint=f'models/fastpitch/v1/{lang}/best_model.pth',
-        tts_config_path=f'models/fastpitch/v1/{lang}/config.json',
-        tts_speakers_file=f'models/fastpitch/v1/{lang}/speakers.pth',
+        tts_checkpoint=f'checkpoints/{lang}/fastpitch/best_model.pth',
+        tts_config_path=f'checkpoints/{lang}/fastpitch/config.json',
+        tts_speakers_file=f'checkpoints/{lang}/fastpitch/speakers.pth',
         # tts_speakers_file=None,
         tts_languages_file=None,
-        vocoder_checkpoint=f'models/hifigan/v1/{lang}/best_model.pth',
-        vocoder_config=f'models/hifigan/v1/{lang}/config.json',
+        vocoder_checkpoint=f'checkpoints/{lang}/hifigan/best_model.pth',
+        vocoder_config=f'checkpoints/{lang}/hifigan/config.json',
         encoder_checkpoint="",
         encoder_config="",
         use_cuda=True,
@@ -68,5 +68,5 @@ async def batch_tts(request: TTSRequest, response: Response):
     return engine.infer_from_request(request)
 
 if __name__ == "__main__":
-    # uvicorn main:api --host 0.0.0.0 --port 5050 --log-level info
-    uvicorn.run("main:api", host="0.0.0.0", port=5050, log_level="info")
+    # uvicorn server:api --host 0.0.0.0 --port 5050 --log-level info
+    uvicorn.run("server:api", host="0.0.0.0", port=5050, log_level="info")

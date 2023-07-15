@@ -1,4 +1,4 @@
-aksharamukha==2.0.4
+aksharamukha==1.9.7
 translators
 num2words
 indic-numtowords

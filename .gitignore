@@ -3,3 +3,5 @@
 *.json
 *.DS_Store
 *.log
+inference/checkpoints
+*.wav

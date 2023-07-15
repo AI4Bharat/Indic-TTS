@@ -1,0 +1,29 @@
+name: "tts"
+backend: "python"
+input [{
+  name: "INPUT_TEXT"
+  data_type: TYPE_STRING
+  dims: 1
+},
+{
+  name: "INPUT_SPEAKER_ID"
+  data_type: TYPE_STRING
+  dims: 1
+},
+{
+  name: "INPUT_LANGUAGE_ID"
+  data_type: TYPE_STRING
+  dims: 1
+}]
+  
+output {
+  name: "OUTPUT_GENERATED_AUDIO"
+  data_type: TYPE_FP32
+  dims: -1
+}
+
+
+instance_group {
+ count: 1
+ kind: KIND_GPU
+}
