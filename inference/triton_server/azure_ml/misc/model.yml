@@ -1,0 +1,5 @@
+$schema: https://azuremlschemas.azureedge.net/latest/model.schema.json
+name: indic-tts--coqui-models--misc
+version: 1
+path: ../../../models/misc/checkpoints
+type: triton_model

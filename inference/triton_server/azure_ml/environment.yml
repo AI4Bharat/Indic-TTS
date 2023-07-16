@@ -1,0 +1,14 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: triton-coqui-tts-env
+image: dhruvaprod.azurecr.io/tts/triton-tts-coqui:latest
+version: 1
+inference_config:
+  liveness_route:
+    path: /v2/health/live
+    port: 8000
+  readiness_route:
+    path: /v2/health/ready
+    port: 8000
+  scoring_route:
+    path: /
+    port: 8000

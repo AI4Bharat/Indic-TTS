@@ -16,5 +16,5 @@ docker run --shm-size=256m --gpus=1 --rm -v ${PWD}/checkpoints/:/models/checkpoi
 
 ## Sample client
 
-- Do `pip install tritonclient` first.
-- Then `python3 triton_server/client.py`
+- Do `pip install tritonclient gevent` first.
+- Then `python3 triton_server/client.py`, which will generate `audio.wav`

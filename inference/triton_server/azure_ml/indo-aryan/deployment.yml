@@ -1,0 +1,13 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: ai4bharat-indo-aryan-tts--t4-gpu
+endpoint_name: ai4bharat-indo-aryan-tts--t4
+model: azureml:indic-tts--coqui-models--indo-aryan:1
+model_mount_path: /models
+environment: azureml:triton-coqui-tts-env:1
+instance_type: Standard_NC4as_T4_v3
+instance_count: 1
+request_settings:
+  request_timeout_ms: 90000
+  max_concurrent_requests_per_instance: 50
+  max_queue_wait_ms: 1000
+app_insights_enabled: true
