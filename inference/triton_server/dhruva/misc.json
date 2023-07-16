@@ -1,0 +1,76 @@
+{
+    "modelId": "ai4bharat/indic-tts-coqui-misc-gpu",
+    "version": "v1",
+    "submittedOn": 1678985381000,
+    "updatedOn": 1678985381000,
+    "name": "AI4Bharat TTS for English, Boro, and Manipuri.",
+    "description": "Text-to-speech models trained using FastPitch and HiFi-GAN vocoder, separately for each language. Supports both 'female' and 'male' voices. All the models were trained using the IndicTTS dataset from SMT Lab, IITM.",
+    "refUrl": "https://github.com/AI4Bharat/Indic-TTS",
+    "task": {
+        "type": "tts"
+    },
+    "languages": [
+        {
+            "sourceLanguage": "en"
+        },
+        {
+            "sourceLanguage": "brx"
+        },
+        {
+            "sourceLanguage": "mni"
+        }
+    ],
+    "license": "mit",
+    "domain": [
+        "general"
+    ],
+    "inferenceEndPoint": {
+        "schema": {
+            "modelProcessingType": {
+                "type": "batch"
+            },
+            "request": {
+                "input": [
+                    {
+                        "source": "Hello world from India!"
+                    }
+                ],
+                "config": {
+                    "language": {
+                        "sourceLanguage": "en"
+                    },
+                    "gender": "male"
+                }
+            },
+            "response": {
+                "audio": [
+                    {
+                        "audioContent": "UklGRkRYAQBXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YSBYAQABAAAABQAAAAUA/f8DAAEAAgAAAAUAAAAEAAAAAwD+/wUA//..."
+                    }
+                ]
+            }
+        }
+    },
+    "submitter": {
+        "name": "AI4Bharat",
+        "aboutMe": "A non-profit, open-source community of engineers, domain experts, policy makers, and academicians collaborating to build AI solutions to solve India’s problems",
+        "team": [
+            {
+                "name": "Praveen SV",
+                "aboutMe": "IIT-Madras, AI4Bharat"
+            },
+            {
+                "name": "Gokul Karthik K",
+                "aboutMe": "Microsoft Research Intern, AI4Bharat"
+            },
+            {
+                "name": "Pratyush Kumar",
+                "aboutMe": "Microsoft Research, AI4Bharat"
+            },
+            {
+                "name": "Mitesh Khapra",
+                "aboutMe": "IIT-Madras, AI4Bharat"
+            }
+        ]
+    }
+}
