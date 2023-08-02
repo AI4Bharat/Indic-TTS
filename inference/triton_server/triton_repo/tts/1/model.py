@@ -82,7 +82,7 @@ class TritonPythonModel:
       enable_denoiser=False,
     )
      
-  def execute(self,requests):
+  def execute(self, requests):
     responses = []
 
     for request in requests:
@@ -102,7 +102,8 @@ class TritonPythonModel:
           # generated_audio = self.engine.models[lang_id].tts(input_text, speaker_id)
           generated_audio = self.engine.infer_from_text(input_text, lang=lang_id, speaker_name=speaker_id, transliterate_roman_to_native=ENABLE_XLIT)
         else:
-          generated_audio = [0]
+          raise NotImplementedError("Language not supported")
+          # generated_audio = [0]
          
         generated_audios.append(generated_audio)
       

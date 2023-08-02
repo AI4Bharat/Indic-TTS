@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 # encoding: utf-8
 
+import re
+
+non_chars_regex = re.compile(r'[^\w]')
+
 class ParagraphHandler():
 
     def __init__(self, max_text_len=512):
@@ -21,7 +25,10 @@ class ParagraphHandler():
                 break
             while delimiter is not None and text[r_pos] != delimiter and r_pos > l_pos and r_pos > 0: # find nearest delimiter < r_pos to split paragraph at.
                 r_pos -= 1
-            paragraphs.append(text[l_pos:r_pos+1])
+            extracted_paragraph = text[l_pos:r_pos+1]
+            extracted_paragraph_without_special_chars = non_chars_regex.sub('', extracted_paragraph)
+            if extracted_paragraph_without_special_chars:
+                paragraphs.append(extracted_paragraph)
             l_pos = r_pos + 1  # handle next paragraph
         return paragraphs
 

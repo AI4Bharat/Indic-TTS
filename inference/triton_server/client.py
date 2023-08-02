@@ -5,7 +5,7 @@ DEFAULT_SAMPLING_RATE = 22050
 
 ENABLE_SSL = False
 ENDPOINT_URL = 'localhost:8000'
-HTTP_HEADERS = {"Authorization": ""}
+HTTP_HEADERS = {"Authorization": "Bearer __PASTE_KEY_HERE__"}
 
 # Connect to the server
 if ENABLE_SSL:
@@ -19,7 +19,9 @@ else:
         url=ENDPOINT_URL, verbose=False,
     )
 
-print("Is server ready - {}".format(triton_http_client.is_server_ready(headers=HTTP_HEADERS)))
+print("Is server ready - {}".format(
+    triton_http_client.is_server_ready(headers=HTTP_HEADERS)
+))
 
 import io
 from scipy.io.wavfile import write as scipy_wav_write
@@ -64,9 +66,9 @@ response = triton_http_client.infer(
     headers=HTTP_HEADERS,
 )#.get_response()
 
-wav = response.as_numpy("OUTPUT_GENERATED_AUDIO")[0]
+raw_audio = response.as_numpy("OUTPUT_GENERATED_AUDIO")[0]
 byte_io = io.BytesIO()
-scipy_wav_write(byte_io, DEFAULT_SAMPLING_RATE, wav)
+scipy_wav_write(byte_io, DEFAULT_SAMPLING_RATE, raw_audio)
 
 with open("audio.wav", "wb") as f:
     f.write(byte_io.read())

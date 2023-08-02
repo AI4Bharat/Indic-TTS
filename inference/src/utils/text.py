@@ -15,9 +15,12 @@ indic_acronym_matcher = regex.compile(r"([\p{L}\p{M}]+\.\s*){2,}")
 # def get_shortforms_from_string(text):
 #     return short_form_regex.findall(text)
 
-short_form_regex = re.compile(r"\b([A-Z][\.\s]*)+([A-Z])?\b")
+short_form_regex = re.compile(r"\b([A-Z][\.\s]+)+([A-Z])?\b")
+eng_consonants_regex = re.compile(r"\b[BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz]+\b")
 def get_shortforms_from_string(text):
-  return [m.group() for m in re.finditer(short_form_regex, text)]
+  dotted_shortforms = [m.group() for m in re.finditer(short_form_regex, text)]
+  non_dotted_shortforms = [m.group() for m in re.finditer(eng_consonants_regex, text)]
+  return dotted_shortforms + non_dotted_shortforms
 
 decimal_str_regex = re.compile("\d{1,3}(?:(?:,\d{2,3}){1,3}|(?:\d{1,7}))?(?:\.\d+)")
 def get_all_decimals_from_string(text):
@@ -191,6 +194,7 @@ class TextNormalizer:
   def expand_shortforms(self, text, lang):
     if lang!='en':
       # Remove dots, as it speaks out like each letter is separate sentence
+      # Example: अई. अई. टी. -> अई अई टी
       for match in regex.finditer(indic_acronym_matcher, text):
         match = match.group()
         match_without_dot = match.replace('.', ' ')
@@ -199,6 +203,10 @@ class TextNormalizer:
     
     shortforms = get_shortforms_from_string(text)
     for shortform in shortforms:
+        shortform = shortform.strip()
+        if shortform == 'I' or shortform == "A":
+          # Skip if valid English words
+          continue
         expanded = ' '.join([self.convert_char2phone(char) for char in shortform])
-        text = text.replace(shortform, expanded)
+        text = text.replace(shortform, expanded, 1)
     return text

@@ -126,7 +126,12 @@ class TextToSpeechEngine:
         transliterate_roman_to_native: bool = True
     ) -> np.ndarray:
         
+        # If there's no separate English model, use the Hinglish one
+        if lang == "en" and lang not in self.models and "en+hi" in self.models:
+            lang = "en+hi"
+        
         input_text, primary_lang, secondary_lang = self.parse_langs_normalise_text(input_text, lang)
+
         wav = None
         paragraphs = self.paragraph_handler.split_text(input_text)
 

@@ -23,7 +23,7 @@ The list of 15 languages include Indian-English, 2 Tibeto-Burman languages (Bodo
 | Hindi        | hi       | male, female | DevaNagari             | Indo-Aryan    | Hindi Belt                |
 | Kannada      | kn       | male, female | Kannada                | Dravidian     | Karnataka                 |
 | Malayalam    | ml       | male, female | Malayalam              | Dravidian     | Kerala                    |
-| Manipuri     | mni      | male, female | Meetei, Eastern-Nagari | Tibeto-Burman | Manipur                   |
+| Manipuri     | mni      | male, female | Meetei, Eastern-Nagari | Tibeto-Burman | Imphal valley (Manipur)   |
 | Marathi      | mr       | male, female | DevaNagari             | Indo-Aryan    | Maharashtra               |
 | Oriya        | or       | male, female | Odia                   | Indo-Aryan    | Odisha                    |
 | Panjabi      | pa       | male, female | Gurumukhi              | Indo-Aryan    | Eastern-Punjab            |

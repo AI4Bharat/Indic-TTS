@@ -28,5 +28,5 @@ COPY triton_server/triton_repo ./triton_repo
 
 CMD ["tritonserver", "--model-repository=/home/triton_repo", "--log-verbose=2", "--strict-model-config=false", "--http-port=8000", "--grpc-port=8001", "--metrics-port=8002"]
 EXPOSE 8000
-EXPOSE 8001 
+EXPOSE 8001
 EXPOSE 8002
