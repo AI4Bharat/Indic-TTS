@@ -45,7 +45,11 @@ sudo apt-get install libsndfile1-dev ffmpeg enchant
 3. `pip install -r requirements-ml.txt requirements-utils.txt`  
 4. [Download the models from here](https://github.com/AI4Bharat/Indic-TTS/releases), place them inside a new folder named `checkpoints` and unzip them.  
 
-### Running server
+### Running inference
+
+Check `sample.py` for usage.
+
+### Hosting REST API server
 
 ```
 pip install -r requirements-server.txt
