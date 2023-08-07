@@ -1,4 +1,5 @@
 import io
+import re
 import base64
 import numpy as np
 import traceback
@@ -9,6 +10,7 @@ from aksharamukha.transliterate import process as aksharamukha_xlit
 from scipy.io.wavfile import write as scipy_wav_write
 
 import nltk
+import pysbd
 
 from .models.common import Language
 from .models.request import TTSRequest
@@ -50,6 +52,7 @@ class TextToSpeechEngine:
 
         self.text_normalizer = TextNormalizer()
         self.paragraph_handler = ParagraphHandler()
+        self.sent_seg = pysbd.Segmenter(language="en", clean=True)
 
         self.orig_sr = 22050 # model.output_sample_rate
         self.enable_denoiser = enable_denoiser
@@ -137,6 +140,11 @@ class TextToSpeechEngine:
 
         for paragraph in paragraphs:
             paragraph = self.handle_transliteration(paragraph, primary_lang, transliterate_roman_to_native)
+            paras = []
+            for sent in self.sent_seg.segment(paragraph):
+                if sent.strip() and not re.match(r'^[_\W]+$', sent.strip()):
+                    paras.append(sent.strip())
+            paragraph = " ".join(paras)
             
             # Run Inference. TODO: Support for batch inference
             wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
