@@ -25,6 +25,7 @@ declare -A urls=(
     ["pa"]="https://github.com/AI4Bharat/Indic-TTS/releases/download/v1-checkpoints-release/pa.zip"
     ["ta"]="https://github.com/AI4Bharat/Indic-TTS/releases/download/v1-checkpoints-release/ta.zip"
     ["te"]="https://github.com/AI4Bharat/Indic-TTS/releases/download/v1-checkpoints-release/te.zip"
+    ["raj"]="https://github.com/AI4Bharat/Indic-TTS/releases/download/v1-checkpoints-release/raj.zip"
 )
 
 # Output directory
