@@ -7,19 +7,18 @@ ENV PYTHONIOENCODING=utf8
 
 RUN apt-get update && apt-get install --fix-missing -y libsndfile1-dev ffmpeg enchant
 
+WORKDIR /models
+COPY checkpoints ./checkpoints
+
 WORKDIR /home/app
 
-COPY requirements-server.txt .
-RUN pip install --use-deprecated=legacy-resolver -r requirements-server.txt
-COPY requirements-ml.txt .
-RUN pip install --use-deprecated=legacy-resolver -r requirements-ml.txt
-COPY requirements-utils.txt .
-RUN pip install --use-deprecated=legacy-resolver -r requirements-utils.txt
+RUN git clone https://github.com/gokulkarthik/TTS 
+RUN cd TTS && python3 -m pip install .[all]
 
-# Download depedencies
-COPY examples ./examples
-RUN python3 examples/xlit.py
-RUN python3 examples/pos_tag.py
+RUN python3 -m pip install pyworld==0.3.1 aksharamukha nltk pydantic nemo_text_processing indic_numtowords indic-nlp-library translators librosa numpy ffmpeg-python soundfile
+
+RUN git clone https://github.com/AI4Bharat/IndicXlit.git
+RUN cd IndicXlit/app && python3 -m pip install .
 
 COPY src ./src
 
