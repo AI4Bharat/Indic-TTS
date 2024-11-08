@@ -1,23 +1,23 @@
+import base64
 import io
 import re
-import base64
-import numpy as np
 import traceback
 from typing import Union
 
-from TTS.utils.synthesizer import Synthesizer
+import nltk
+import numpy as np
+import pysbd
 from aksharamukha.transliterate import process as aksharamukha_xlit
 from scipy.io.wavfile import write as scipy_wav_write
-
-import nltk
-import pysbd
+from TTS.utils.synthesizer import Synthesizer
 
 from .models.common import Language
 from .models.request import TTSRequest
-from .models.response import AudioFile, AudioConfig, TTSResponse, TTSFailureResponse
-from .utils.text import TextNormalizer
+from .models.response import AudioConfig, AudioFile, TTSFailureResponse, TTSResponse
+from .postprocessor import PostProcessor
 from .utils.paragraph_handler import ParagraphHandler
-from src.postprocessor import PostProcessor
+from .utils.text import TextNormalizer
+
 
 class TextToSpeechEngine:
     def __init__(
@@ -28,24 +28,25 @@ class TextToSpeechEngine:
     ):
         self.models = models
         # TODO: Ability to instantiate models by accepting standard paths or auto-downloading
-        
+
         code_mixed_found = False
         if allow_transliteration:
             # Initialize Indic-Xlit models for the languages corresponding to TTS models
             from ai4bharat.transliteration import XlitEngine
+
             xlit_langs = set()
-            
+
             for lang in list(models):
-                if lang == 'en':
-                    continue # No need of any Indic-transliteration for English
-                
-                if '+' in lang:
+                if lang == "en":
+                    continue  # No need of any Indic-transliteration for English
+
+                if "+" in lang:
                     # If it's a code-mixed model like Hinglish, we need Hindi Xlit for non-English words
                     # TODO: Make it mandatory irrespective of `allow_transliteration` boolean
-                    lang = lang.split('+')[1]
+                    lang = lang.split("+")[1]
                     code_mixed_found = True
                 xlit_langs.add(lang)
-            
+
             self.xlit_engine = XlitEngine(xlit_langs, beam_width=6)
         else:
             self.xlit_engine = None
@@ -54,15 +55,16 @@ class TextToSpeechEngine:
         self.paragraph_handler = ParagraphHandler()
         self.sent_seg = pysbd.Segmenter(language="en", clean=True)
 
-        self.orig_sr = 22050 # model.output_sample_rate
+        self.orig_sr = 22050  # model.output_sample_rate
         self.enable_denoiser = enable_denoiser
         if enable_denoiser:
             from src.postprocessor import Denoiser
+
             self.target_sr = 16000
             self.denoiser = Denoiser(self.orig_sr, self.target_sr)
         else:
             self.target_sr = self.orig_sr
-        
+
         self.post_processor = PostProcessor(self.target_sr)
 
         if code_mixed_found:
@@ -85,11 +87,8 @@ class TextToSpeechEngine:
         return np.concatenate([wav, wav_chunk])
 
     def infer_from_request(
-        self,
-        request: TTSRequest,
-        transliterate_roman_to_native: bool = True
+        self, request: TTSRequest, transliterate_roman_to_native: bool = True
     ) -> TTSResponse:
-
         config = request.config
         lang = config.language.sourceLanguage
         gender = config.gender
@@ -100,14 +99,21 @@ class TextToSpeechEngine:
 
         if lang not in self.models:
             return TTSFailureResponse(status_text="Unsupported language!")
-        
+
         if lang == "brx" and gender == "male":
-            return TTSFailureResponse(status_text="Sorry, `male` speaker not supported for this language!")
-        
+            return TTSFailureResponse(
+                status_text="Sorry, `male` speaker not supported for this language!"
+            )
+
         output_list = []
 
         for sentence in request.input:
-            raw_audio = self.infer_from_text(sentence.source, lang, gender, transliterate_roman_to_native=transliterate_roman_to_native)
+            raw_audio = self.infer_from_text(
+                sentence.source,
+                lang,
+                gender,
+                transliterate_roman_to_native=transliterate_roman_to_native,
+            )
             # Convert PCM to WAV
             byte_io = io.BytesIO()
             scipy_wav_write(byte_io, self.target_sr, raw_audio)
@@ -115,65 +121,80 @@ class TextToSpeechEngine:
             encoded_bytes = base64.b64encode(byte_io.read())
             encoded_string = encoded_bytes.decode()
             speech_response = AudioFile(audioContent=encoded_string)
-            
+
             output_list.append(speech_response)
 
         audio_config = AudioConfig(language=Language(sourceLanguage=lang))
         return TTSResponse(audio=output_list, config=audio_config)
-    
+
     def infer_from_text(
         self,
         input_text: str,
         lang: str,
         speaker_name: str,
-        transliterate_roman_to_native: bool = True
+        transliterate_roman_to_native: bool = True,
     ) -> np.ndarray:
-        
         # If there's no separate English model, use the Hinglish one
+        split_lang = lang
         if lang == "en" and lang not in self.models and "en+hi" in self.models:
             lang = "en+hi"
-        
-        input_text, primary_lang, secondary_lang = self.parse_langs_normalise_text(input_text, lang)
+            split_lang = "hi"
+
+        input_text, primary_lang, secondary_lang = self.parse_langs_normalise_text(
+            input_text, lang
+        )
 
         wav = None
-        paragraphs = self.paragraph_handler.split_text(input_text)
+        xlit_paragraph = self.handle_transliteration(
+            input_text, primary_lang, transliterate_roman_to_native
+        )
 
+        paragraphs = self.paragraph_handler.split_text(xlit_paragraph, split_lang)
         for paragraph in paragraphs:
-            paragraph = self.handle_transliteration(paragraph, primary_lang, transliterate_roman_to_native)
             paras = []
             for sent in self.sent_seg.segment(paragraph):
-                if sent.strip() and not re.match(r'^[_\W]+$', sent.strip()):
+                if sent.strip() and not re.match(r"^[_\W]+$", sent.strip()):
                     paras.append(sent.strip())
             paragraph = " ".join(paras)
-            
-            # Run Inference. TODO: Support for batch inference
-            wav_chunk = self.models[lang].tts(paragraph, speaker_name=speaker_name, style_wav="")
 
+            # Run Inference. TODO: Support for batch inference
+            wav_chunk = self.models[lang].tts(
+                paragraph, speaker_name=speaker_name, style_wav=""
+            )
             wav_chunk = self.postprocess_audio(wav_chunk, primary_lang, speaker_name)
+
             # Concatenate current chunk with previous audio outputs
             wav = self.concatenate_chunks(wav, wav_chunk)
+
         return wav
-    
-    def parse_langs_normalise_text(self, input_text: str, lang: str) -> Union[str, str, str]:
+
+    def parse_langs_normalise_text(
+        self, input_text: str, lang: str
+    ) -> Union[str, str, str]:
         # If there's no separate English model, use the Hinglish one if present
         if lang == "en" and lang not in self.models and "en+hi" in self.models:
             lang = "en+hi"
 
-        if lang == "en+hi": # Hinglish (English+Hindi code-mixed)
-            primary_lang, secondary_lang = lang.split('+')
+        if lang == "en+hi":  # Hinglish (English+Hindi code-mixed)
+            primary_lang, secondary_lang = lang.split("+")
         else:
             primary_lang = lang
             secondary_lang = None
 
         input_text = self.text_normalizer.normalize_text(input_text, primary_lang)
+
         if secondary_lang:
             # TODO: Write a proper `transliterate_native_words_using_eng_dictionary`
-            input_text = self.transliterate_native_words_using_spell_checker(input_text, secondary_lang)
+            input_text = self.transliterate_native_words_using_spell_checker(
+                input_text, secondary_lang
+            )
 
         return input_text, primary_lang, secondary_lang
-    
-    def handle_transliteration(self, input_text: str, primary_lang: str, transliterate_roman_to_native: bool) -> str:
-        if transliterate_roman_to_native and primary_lang != 'en':
+
+    def handle_transliteration(
+        self, input_text: str, primary_lang: str, transliterate_roman_to_native: bool
+    ) -> str:
+        if transliterate_roman_to_native and primary_lang != "en":
             input_text = self.transliterate_sentence(input_text, primary_lang)
 
             # Manipuri was trained using the Central-govt's Bangla script
@@ -182,17 +203,20 @@ class TextToSpeechEngine:
                 # TODO: Delete explicit-schwa
                 input_text = aksharamukha_xlit("MeeteiMayek", "Bengali", input_text)
         return input_text
-        
+
     def preprocess_text(
         self,
         input_text: str,
         lang: str,
         # speaker_name: str,
-        transliterate_roman_to_native: bool = True
+        transliterate_roman_to_native: bool = True,
     ) -> np.ndarray:
-
-        input_text, primary_lang, secondary_lang = self.parse_langs_normalise_text(input_text, lang)
-        input_text = self.handle_transliteration(input_text, primary_lang, transliterate_roman_to_native)
+        input_text, primary_lang, secondary_lang = self.parse_langs_normalise_text(
+            input_text, lang
+        )
+        input_text = self.handle_transliteration(
+            input_text, primary_lang, transliterate_roman_to_native
+        )
         return input_text
 
     def postprocess_audio(self, wav_chunk, primary_lang, speaker_name):
@@ -210,12 +234,14 @@ class TextToSpeechEngine:
             if pos_tag == "NNP" or pos_tag == "NNPS":
                 # Enchant has many proper-nouns as well in its dictionary, don't know why.
                 # So if it's a proper-noun, always nativize
-                # FIXME: But NLTK's `averaged_perceptron_tagger` does not seem to be 100% accurate, it has false positives 🤦‍♂️ 
+                # FIXME: But NLTK's `averaged_perceptron_tagger` does not seem to be 100% accurate, it has false positives 🤦‍♂️
                 pass
-            elif self.enchant_dicts["en_US"].check(word) or self.enchant_dicts["en_GB"].check(word):
+            elif self.enchant_dicts["en_US"].check(word) or self.enchant_dicts[
+                "en_GB"
+            ].check(word):
                 # TODO: Merge British and American dicts into 1 somehow
                 continue
-            
+
             # Convert "Ram's" -> "Ram". TODO: Think what are the failure cases
             word = word.split("'")[0]
 
@@ -228,6 +254,6 @@ class TextToSpeechEngine:
             return input_text
 
         if lang == "raj":
-            lang = "hi" # Approximate
-        
+            lang = "hi"  # Approximate
+
         return self.xlit_engine.translit_sentence(input_text, lang)
