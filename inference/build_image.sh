@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# bash build_image as bn gu hi mr or pa
+# Indo Aryan TTS
+# bash build_image.sh as bn gu hi mr or pa raj
+
+# Dravidian TTS
+# bash build_image.sh kn ml ta te
+
+# Misc TTS
+# bash build_image.sh brx en+hi mni
 
 # Array of URLs to download with language codes as keys
 declare -A urls=(
