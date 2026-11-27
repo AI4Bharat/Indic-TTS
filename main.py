@@ -29,7 +29,7 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_checkpoint
 from tqdm.auto import tqdm
 
-from utils import str2bool
+from TTS.bin.synthesize import str2bool
 
 
 def get_arg_parser():
