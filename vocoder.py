@@ -10,7 +10,7 @@ from TTS.vocoder.configs import HifiganConfig
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.models.gan import GAN
 
-from utils import str2bool
+from TTS.bin.synthesize import str2bool
 
 
 def formatter_indictts(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
